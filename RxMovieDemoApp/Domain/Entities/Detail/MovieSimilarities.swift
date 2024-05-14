@@ -1,18 +1,18 @@
 //
-//  MovieSimilarModel.swift
-//  RxMovieApp
+//  MovieSimilarities.swift
+//  RxMovieDemoApp
 //
 //  Created by YuChen Lin on 2024/3/20.
 //
 
 import Foundation
 
-struct MovieSimilaries:Codable {
-    let results:[MovieSimilarDetailModel]
+struct MovieSimilarities:Codable {
+    let results:[MovieSimilaritiesDetail]
 }
 
 
-struct MovieSimilarDetailModel:Codable,Hashable {
+struct MovieSimilaritiesDetail:Codable,Hashable {
     let id:Int
     let poster_path:String?
     let vote_average:Double
@@ -21,7 +21,7 @@ struct MovieSimilarDetailModel:Codable,Hashable {
         hasher.combine(self.id)
     }
 
-    static func == (lhs:MovieSimilarDetailModel , rhs:MovieSimilarDetailModel) -> Bool {
+    static func == (lhs:MovieSimilaritiesDetail , rhs:MovieSimilaritiesDetail) -> Bool {
         return lhs.id == rhs.id
     }
 }

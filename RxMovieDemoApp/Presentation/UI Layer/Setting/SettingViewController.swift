@@ -12,35 +12,42 @@ import RxCocoa
 import SnapKit
 import RxDataSources
 import LocalAuthentication
+import JGProgressHUD
+import RxTheme
 
- enum SectionItem {
-     case titleCellInit(title: String, imageName: String)
-     case titleCellWithSwitch(title: String, imageName: String)
- }
+enum SectionItem {
+    case titleCellInit(title: String)
+    case titleCellWithSwitch(title: String)
+}
 
- struct SettingSection{
-     var header:String
-     var items:[SectionItem]
- }
+struct SettingSection{
+    var header:String
+    var items:[SectionItem]
+}
 
- extension SettingSection:SectionModelType {
-     typealias Items = SectionItem
+extension SettingSection:SectionModelType {
+    typealias Items = SectionItem
 
-     init(original: SettingSection, items: [Items]) {
-         self = original
-         self.items = items
-     }
- }
+    init(original: SettingSection, items: [Items]) {
+        self = original
+        self.items = items
+    }
+}
 
-class SettingsViewController: UIViewController,SetItemWithSwitchCellDelegate {
+class SettingsViewController: UIViewController {
 
     let disposeBag = DisposeBag()
 
-    private var iconView:UIView = {
-        let view = UIView()
-        view.backgroundColor = .gray
+    private let hud : JGProgressHUD = {
+        let hud = JGProgressHUD()
+        return hud
+    }()
+
+    private var iconView:UIImageView = {
+        let view = UIImageView()
+        view.image = UIImage(named: "AppIcon")
         view.clipsToBounds = true
-        view.layer.cornerRadius = 45
+        view.layer.cornerRadius = 10
         return view
     }()
 
@@ -55,14 +62,38 @@ class SettingsViewController: UIViewController,SetItemWithSwitchCellDelegate {
     }()
 
     private let settingView :UITableView = {
-        let tableView = UITableView()
+        let tableView = UITableView(frame: .zero,style: .insetGrouped)
         tableView.register(SetItemWithImgCell.self, forCellReuseIdentifier: "SetItemWithImgCell")
         tableView.register(SetItemWithSwitchCell.self, forCellReuseIdentifier: "SetItemWithSwitchCell")
-        tableView.backgroundColor = AppConstant.COMMON_MAIN_COLOR
-        tableView.separatorColor = .white
-        tableView.separatorInset = UIEdgeInsets(top: 0, left: 10, bottom: 0, right: 10)
+        tableView.separatorStyle = .none
         return tableView
     }()
+
+
+      lazy var aboutView : MovieDescriptionView = {
+        let overallView = MovieDescriptionView()
+        overallView.titleLabel.text = "Tech Stack"
+        overallView.titleLabel.theme.textColor  = themeService.attribute {$0.textColor}
+        overallView.contentLabel.text = """
+                                  - RxSwift / RxTheme / RxDataSource
+                                  - MVVM
+                                  - Snapkit / Alamofire / Kingfisher
+                                  - Compositional Layout
+                                  - Repository pattern
+                                  - Quick/ Nimble
+                                  """
+        return overallView
+    }()
+
+    lazy var copyrightLabel:UILabel = {
+        let label = UILabel()
+        label.text = "MIT License | Copyright (c) 2024 YuChen Lin"
+        label.textAlignment = .center
+        label.font = .systemFont(ofSize: 12)
+        label.theme.textColor  = themeService.attribute {$0.textColor}
+        return label
+    }()
+
 
     private let viewModel = SettingViewModel()
 
@@ -76,10 +107,11 @@ class SettingsViewController: UIViewController,SetItemWithSwitchCellDelegate {
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        view.backgroundColor = AppConstant.COMMON_MAIN_COLOR
         setLayout()
+        viewModel.delegate = self
         readUserInfo()
         setItemSoure()
+        setupTheme()
     }
 
     private func setLayout(){
@@ -89,9 +121,11 @@ class SettingsViewController: UIViewController,SetItemWithSwitchCellDelegate {
         self.view.addSubview(iconView)
         self.view.addSubview(nameLabel)
         self.view.addSubview(settingView)
+        self.view.addSubview(aboutView)
+        self.view.addSubview(copyrightLabel)
 
         iconView.snp.makeConstraints { make in
-            make.top.equalTo(self.view.safeAreaLayoutGuide)
+            make.top.equalTo(self.view.safeAreaLayoutGuide).offset(30)
             make.left.equalToSuperview().offset(20)
             make.width.equalTo(90)
             make.height.equalTo(90)
@@ -106,15 +140,33 @@ class SettingsViewController: UIViewController,SetItemWithSwitchCellDelegate {
 
         settingView.snp.makeConstraints { make in
             make.top.equalTo(iconView.snp.bottom).offset(30)
-            make.left.right.bottom.equalToSuperview()
+            make.left.right.equalToSuperview()
+            make.height.equalToSuperview().multipliedBy(0.33)
         }
+
+        copyrightLabel.snp.makeConstraints { make in
+            make.bottom.equalTo(self.view.safeAreaLayoutGuide.snp.bottom).inset(15)
+            make.left.right.equalToSuperview()
+        }
+
+        aboutView.snp.makeConstraints { make in
+            make.top.equalTo(settingView.snp.bottom).offset(10)
+            make.left.right.equalToSuperview().inset(30)
+            make.bottom.equalTo(copyrightLabel.snp.top).inset(30)
+        }
+
 
     }
 
     private func readUserInfo () {
-        if let userInfo = FetchUserUseCase.readFile() {
-            self.nameLabel.text = userInfo.login!
+//        if let userInfo = UserResponseUseCase.readFile() {
+//            self.nameLabel.text = userInfo.login!
+//        }
+        
+        if let userAccount = UserResponseUseCase.readUserAccount() {
+            self.nameLabel.text = userAccount
         }
+        
     }
 
 
@@ -124,16 +176,17 @@ class SettingsViewController: UIViewController,SetItemWithSwitchCellDelegate {
         settingViewDataSoure = RxTableViewSectionedReloadDataSource(configureCell: { dataSource, tableView, indexPath, items in
 
             switch dataSource [indexPath]{
-            case .titleCellInit(title: let title, imageName: let imageName):
+            case .titleCellInit(title: let title):
                 let settingImgcell = tableView.dequeueReusableCell(withIdentifier: "SetItemWithImgCell", for: indexPath) as! SetItemWithImgCell
-                settingImgcell.backgroundColor = .clear
+                settingImgcell.theme.backgroundColor = themeService.attribute {$0.tableViewThemeColor}
                 settingImgcell.selectionStyle = .none
-                settingImgcell.setSettingItems(itemName: title, imgName: imageName)
+                settingImgcell.itemTitle.theme.textColor = themeService.attribute { $0.textColor }
+                settingImgcell.setSettingItems(itemName: title)
                 return settingImgcell
 
-            case .titleCellWithSwitch(title: let title, imageName: let imageName):
+            case .titleCellWithSwitch(title: let title):
                 let settingSwitchcell = tableView.dequeueReusableCell(withIdentifier: "SetItemWithSwitchCell", for: indexPath) as! SetItemWithSwitchCell
-                settingSwitchcell.backgroundColor = .clear
+                settingSwitchcell.theme.backgroundColor = themeService.attribute {$0.tableViewThemeColor}
                 settingSwitchcell.delegate = self
 
                 if let savedIndices = UserDefaults.standard.array(forKey: self.saveSelectpathKey) as? [Int] {
@@ -142,10 +195,12 @@ class SettingsViewController: UIViewController,SetItemWithSwitchCellDelegate {
 
                 let isOn = self.saveSelectPath.contains(indexPath.row)
                 settingSwitchcell.setSettingItems(itemName: title, isOn: isOn)
-
+                settingSwitchcell.itemTitle.theme.textColor = themeService.attribute { $0.textColor }
                 settingSwitchcell.selectionStyle = .none
                 return settingSwitchcell
             }
+        },titleForHeaderInSection: { ds, index in
+            return ds.sectionModels[index].header
         })
 
         settingItems!.bind(to: settingView.rx.items(dataSource: settingViewDataSoure!)).disposed(by: self.disposeBag)
@@ -153,58 +208,18 @@ class SettingsViewController: UIViewController,SetItemWithSwitchCellDelegate {
         settingView.rx.itemSelected.subscribe { [self] indexPath in
 
             switch indexPath.item {
-            case 2 :
+            case 1 :
                 let vc = FavoritesViewController()
                 vc.modalPresentationStyle = .fullScreen
                 vc.modalTransitionStyle = .crossDissolve
                 self.present(vc, animated: true)
-            case 5:
-                print("Log Out")
+            case 3:
+                viewModel.doUserLogOut()
             default:
-                print("Do Nothing ?")
+                print("Do Nothing ?!")
             }
 
-        }
-    }
-
-    internal func toggleStatusDidChange(_ cell: SetItemWithSwitchCell, isOn: Bool) {
-        guard let indexPath = settingView.indexPath(for: cell) else {
-            return
-        }
-
-        switch indexPath.row {
-          case 1 :
-            
-            if (isOn) {
-                viewModel.enableAppLock()
-            } else {
-                viewModel.disableAppLock()
-            }
-
-
-          case 3 :
-            if (isOn) {
-                themeService.switch(.dark)
-                selectedTheme = .dark
-            }  else {
-                themeService.switch(.light)
-                selectedTheme = .light
-            }
-
-
-
-          default:
-            print("No Action")
-        }
-        
-        
-        if (isOn) {
-            appendNeedSavePath(index: indexPath.row)
-        } else {
-            removeSelectedPath(index: indexPath.row)
-        }
-        saveSelectedIndices()
-        removeDuplicateIndices()
+        }.disposed(by: self.disposeBag)
     }
 
 
@@ -240,12 +255,128 @@ class SettingsViewController: UIViewController,SetItemWithSwitchCellDelegate {
 
 }
 
+extension SettingsViewController:SetItemWithSwitchCellDelegate {
+    func toggleStatusDidChange(_ cell: SetItemWithSwitchCell, isOn: Bool) {
+        guard let indexPath = settingView.indexPath(for: cell) else {
+            return
+        }
 
- extension SettingsViewController :UITableViewDelegate{
+        switch indexPath.row {
+        case 0 :
 
-     func tableView(_ tableView: UITableView, heightForRowAt indexPath: IndexPath) -> CGFloat {
-         return 50
-     }
+            if (isOn) {
+                viewModel.enableAppLock()
+            } else {
+                viewModel.disableAppLock()
+            }
 
- }
+        case 2 :
+            if (isOn) {
+                themeService.switch(.light)
+                selectedTheme = .light
+            }  else {
+                themeService.switch(.dark)
+                selectedTheme = .dark
+            }
 
+        default:
+            print("No Action")
+        }
+
+
+        if (isOn) {
+            appendNeedSavePath(index: indexPath.row)
+        } else {
+            removeSelectedPath(index: indexPath.row)
+        }
+        saveSelectedIndices()
+        removeDuplicateIndices()
+    }
+}
+
+extension SettingsViewController:SettingViewDelegate {
+    func doLogOutAlert() {
+        let alertController = UIAlertController(title: "Logout Confirmation" , message: "This action will log you out of your account. Continue?", preferredStyle: .alert)
+        let okAction = UIAlertAction(title: "Confirm", style: .default, handler: { [self] _ in
+            let vc = LoginViewController()
+            vc.modalPresentationStyle = .fullScreen
+            vc.modalTransitionStyle = .crossDissolve
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                self.present(vc, animated: true) {
+                    self.dismiss(animated: true, completion: nil)
+                    self.removeFromParent()
+                }
+            }
+        })
+        alertController.addAction(okAction)
+        DispatchQueue.main.async {
+            self.present(alertController, animated: true, completion: nil)
+        }
+
+    }
+
+    func didChange(isLoading: Bool) {
+        if isLoading {
+            hud.show(in: self.view)
+        } else {
+            hud.dismiss()
+        }
+    }
+
+    func showErrorMessage() {
+        hud.textLabel.text = "Login Out Error"
+        hud.detailTextLabel.text = "Server Error... Please Wait !"
+        hud.indicatorView = JGProgressHUDErrorIndicatorView()
+        hud.show(in: self.view)
+        hud.dismiss(afterDelay: 3.0)
+    }
+
+
+
+}
+
+extension SettingsViewController :UITableViewDelegate{
+
+    func tableView(_ tableView: UITableView, viewForHeaderInSection section: Int)
+    -> UIView? {
+        let headerView = UIView()
+        headerView.backgroundColor = .clear
+        let titleLabel = UILabel()
+
+        settingItems?.subscribe(onNext: { sections in
+            for section in sections {
+                let header = section.header
+                titleLabel.text = header
+
+            }
+        }).disposed(by: disposeBag)
+
+        titleLabel.font = .systemFont(ofSize: 14, weight: .bold)
+        titleLabel.theme.textColor  = themeService.attribute {$0.textColor}
+        headerView.addSubview(titleLabel)
+        titleLabel.snp.makeConstraints { make in
+            make.top.bottom.equalToSuperview()
+            make.left.equalToSuperview().offset(20)
+            make.right.equalToSuperview().offset(-15)
+        }
+        return headerView
+    }
+
+    func tableView(_ tableView: UITableView, heightForRowAt indexPath: IndexPath) -> CGFloat {
+        return 50
+    }
+
+    func tableView(_ tableView: UITableView, heightForHeaderInSection section: Int) -> CGFloat {
+        return 40
+    }
+
+}
+
+
+extension SettingsViewController:ThemeChangeDelegate {
+    func setupTheme() {
+        self.view.theme.backgroundColor = themeService.attribute {$0.backgroundColor}
+        self.settingView.theme.backgroundColor = themeService.attribute {$0.backgroundColor}
+        self.nameLabel.theme.textColor  = themeService.attribute {$0.textColor}
+    }
+}

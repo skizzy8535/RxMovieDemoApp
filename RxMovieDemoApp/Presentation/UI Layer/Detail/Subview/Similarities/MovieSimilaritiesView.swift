@@ -11,7 +11,7 @@ import RxSwift
 import RxCocoa
 import RxRelay
 import RxDataSources
-
+import RxTheme
 
 class MovieSimilarView: UIView {
 
@@ -29,7 +29,6 @@ class MovieSimilarView: UIView {
         layout.minimumInteritemSpacing = 5
         let collectionView = UICollectionView(frame: .zero, collectionViewLayout: layout)
         collectionView.register(MovieSimilaritiesCell.self, forCellWithReuseIdentifier: "MovieSimilaritiesCell")
-        collectionView.backgroundColor = AppConstant.COMMON_MAIN_COLOR
         collectionView.contentInset = UIEdgeInsets(top: 5, left: 10, bottom: 5, right: 10)
         return collectionView
     }()
@@ -38,9 +37,9 @@ class MovieSimilarView: UIView {
     init(id: Int) {
         self.similarViewModel = MovieSimilarViewModel(contentID: id)
         super.init(frame: .zero)
-        self.backgroundColor = AppConstant.COMMON_MAIN_COLOR
         setLayout()
         bindViewModel()
+        setupTheme()
     }
 
     required init?(coder: NSCoder) {
@@ -60,7 +59,6 @@ class MovieSimilarView: UIView {
             configureCell: { _, collectionView, indexPath, item in
 
                 let cell = collectionView.dequeueReusableCell(withReuseIdentifier: "MovieSimilaritiesCell", for: indexPath) as! MovieSimilaritiesCell
-                cell.backgroundColor = AppConstant.COMMON_MAIN_COLOR
                 cell.configCell(imgURL: item.poster_path ?? "", voteRate: item.vote_average)
                 return cell
             })
@@ -76,3 +74,12 @@ class MovieSimilarView: UIView {
 
 }
 
+
+
+extension MovieSimilarView:ThemeChangeDelegate {
+    func setupTheme() {
+        self.theme.backgroundColor = themeService.attribute {$0.backgroundColor}
+        self.similarView.theme.backgroundColor = themeService.attribute {$0.backgroundColor}
+
+    }
+}

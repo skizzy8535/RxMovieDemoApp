@@ -13,10 +13,11 @@ import JGProgressHUD
 import RxTheme
 
 
-class FavoritesViewController: UIViewController {
+class FavoritesViewController: UIViewController,WithoutNavPresentReloadDelegate {
+
     private let viewModel = FavoritesViewModel()
     private let disposeBag = DisposeBag()
-
+    
     private lazy var backButton :UIButton = {
         let button = UIButton()
         button.addTarget(self, action: #selector(backButtonAction), for: .touchUpInside)
@@ -24,22 +25,22 @@ class FavoritesViewController: UIViewController {
         button.tintColor = .white
         return button
     }()
-
+    
     private var titleLabel :UILabel = {
         let label = UILabel()
         label.text = "Favorite Movies"
         label.textAlignment = .center
         return label
     }()
-
-
+    
+    
     private let hud : JGProgressHUD = {
         let hud = JGProgressHUD()
         hud.textLabel.text = "Loading ..."
         hud.detailTextLabel.text = "Please Wait"
         return hud
     }()
-
+    
     private lazy var movieCollectionView:UICollectionView = {
         let defaultSize = self.view.bounds.width / 2
         let layout = UICollectionViewFlowLayout()
@@ -55,62 +56,55 @@ class FavoritesViewController: UIViewController {
         collectionView.register(FavoritesCollectionViewCell.self, forCellWithReuseIdentifier: "FavoritesCollectionViewCell")
         return collectionView
     }()
-
+    
     override func viewDidLoad() {
         super.viewDidLoad()
         viewModel.fetchFavorites()
         viewModel.delegate = self
         setLayout()
-        setData()
         setupTheme()
     }
-
-
+    
+    
     private func setLayout(){
         self.view.addSubview(backButton)
         self.view.addSubview(titleLabel)
         self.view.addSubview(movieCollectionView)
-
+        
         backButton.snp.makeConstraints { make in
             make.top.equalTo(self.view.safeAreaLayoutGuide).offset(5)
             make.left.equalToSuperview().offset(10)
             make.width.height.equalTo(30)
         }
-
+        
         titleLabel.snp.makeConstraints { make in
             make.top.equalTo(self.view.safeAreaLayoutGuide).offset(5)
             make.centerX.equalToSuperview()
             make.width.equalTo(150)
             make.height.equalTo(35)
         }
-
-
+        
+        
         movieCollectionView.snp.makeConstraints { make in
             make.top.equalTo(backButton.snp.bottom).offset(10)
             make.left.right.bottom.equalToSuperview()
         }
     }
-
-    private func setData() {
-        viewModel.favoriteMovieList.subscribe { _ in
-            self.movieCollectionView.reloadData()
-        }.disposed(by: self.disposeBag)
-
-    }
-
+    
+    
     @objc private func backButtonAction() {
-            self.dismiss(animated: true,completion: nil)
+        self.dismiss(animated: true,completion: nil)
     }
 }
 
 extension FavoritesViewController:UICollectionViewDelegate,UICollectionViewDataSource {
-
+    
     func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
         return viewModel.favoriteMovieList.value.count
     }
-
+    
     func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
-
+        
         let cell = collectionView.dequeueReusableCell(withReuseIdentifier: "FavoritesCollectionViewCell", for: indexPath) as! FavoritesCollectionViewCell
         let item = viewModel.favoriteMovieList.value[indexPath.item]
         cell.delegate = self
@@ -118,60 +112,79 @@ extension FavoritesViewController:UICollectionViewDelegate,UICollectionViewDataS
         cell.configFavStatus(isFavorite:true)
         return cell
     }
-
+    
     func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
         print("Select at \(indexPath.item)")
         let contentID = viewModel.favoriteMovieList.value[indexPath.item].fields.movieID
         let movieDetailsVC = MovieDetailsViewController(id: contentID,popType: .withoutNavPresent)
         movieDetailsVC.modalPresentationStyle = .fullScreen
+        movieDetailsVC.loadingDelegate = self
         self.present(movieDetailsVC, animated: true)
     }
+    
 
+    func reloadScreen() {
+        viewModel.fetchFavorites()
+        viewModel.favoriteMovieList.subscribe { _ in
+            self.movieCollectionView.reloadData()
+        }.disposed(by: self.disposeBag)
+    }
 }
 
 extension FavoritesViewController:FavoritesCollectionViewCellDelegate{
     func didTapButton(in cell: UICollectionViewCell) {
-
-
+        
+        
         if let indexPath = movieCollectionView.indexPath(for: cell) ,
            let favCell = cell as? FavoritesCollectionViewCell {
-
-            let newIsFavorite = !favCell.isFavorite
-            favCell.isFavorite = newIsFavorite
-
+            
+            
             let item = viewModel.favoriteMovieList.value[indexPath.item]
-            let contentID = favCell.contentID
+            
+            let contentID =  item.fields.movieID
 
-            if (newIsFavorite) {
-
-                guard let userInfo = FetchUserUseCase.readFile() else {
-                    print("Can't get User name")
-                    return
+            self.viewModel.checkIfIsFavsMovie(id: contentID) { result in
+                switch result {
+                case .success(let (resultBool, favsIntID)):
+                    
+                    if (resultBool) {
+                        
+                        let readyDeleteItem =  FavoriteDeleted(id:favsIntID,deleted: true)
+                        favCell.collectBtn.deleteAddFavorite(item: readyDeleteItem)
+                        
+                    } else {
+                        
+                        guard let userAccount = UserResponseUseCase.readUserAccount()  else {
+                            print("Can't get User name")
+                            return
+                        }
+                        
+                        let postModel = PostFavoriteRecordModel(fields:
+                                                                    FavoriteItems(userName: userAccount,
+                                                                                  movieID: item.fields.movieID,
+                                                                                  movieName: item.fields.movieName,
+                                                                                  posterURL: item.fields.posterURL))
+                        
+                        favCell.collectBtn.setAddFavorite(favorites: postModel)
+                        
+                    }
+                    
+                    favCell.collectBtn.setStatus(status: !resultBool)
+                    
+                    
+                    
+                case .failure(let failure):
+                    print(failure.localizedDescription)
                 }
-
-                let postModel = PostFavoriteRecordModel(fields:
-                                                            FavoriteItems(userName: userInfo.login ?? "YuChen Lin",
-                                                                          movieID: item.fields.movieID,
-                                                                          movieName: item.fields.movieName,
-                                                                          posterURL: item.fields.posterURL))
-                favCell.collectBtn.setAddFavorite(favorites: postModel)
-
-            } else {
-
-                let readyDeleteItem =  FavoriteDeleted(id:contentID,deleted: true)
-                print(readyDeleteItem)
-                favCell.collectBtn.deleteAddFavorite(item: readyDeleteItem)
-
+                
+                
             }
-
         }
     }
 }
-
-
 extension FavoritesViewController:MovieFavsLoadingDelegate{
-
-
+    
+    
     func didChange(isLoading: Bool) {
         if isLoading {
             hud.show(in: self.view)
@@ -179,13 +192,21 @@ extension FavoritesViewController:MovieFavsLoadingDelegate{
             hud.dismiss()
         }
     }
+    
+    func showErrorMessage() {
 
-    func showErrorMessage(error: String) {
         hud.textLabel.text = "Fetch Error"
         hud.indicatorView = JGProgressHUDErrorIndicatorView()
         hud.show(in: self.view)
         hud.dismiss(afterDelay: 3.0)
     }
+    
+    func presentFavMovieItems() {
+        viewModel.favoriteMovieList.subscribe { _ in
+            self.movieCollectionView.reloadData()
+        }.disposed(by: self.disposeBag)
+    }
+    
 }
 
 

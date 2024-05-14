@@ -4,7 +4,6 @@
 //
 //  Created by YuChen Lin on 2024/2/24.
 //
-
 import SnapKit
 import UIKit
 import RxSwift
@@ -12,15 +11,23 @@ import RxCocoa
 import RxRelay
 import Kingfisher
 import YoutubePlayerView
+import JGProgressHUD
+
 
 enum PopType {
     case withNavPresent
     case withoutNavPresent
 }
+
+protocol WithoutNavPresentReloadDelegate :AnyObject {
+    func reloadScreen()
+}
+
 class MovieDetailsViewController: UIViewController {
 
     private let detailViewModel: MovieDetailViewModel
     private let addCollectionViewModel = FavoritesViewModel()
+    var loadingDelegate:WithoutNavPresentReloadDelegate?
     private var contentID :Int = 0
     private let disposeBag = DisposeBag()
     private var popType :PopType = .withNavPresent
@@ -33,7 +40,7 @@ class MovieDetailsViewController: UIViewController {
         return scrollView
     }()
 
-    let contentView = UIView()
+    lazy var contentView = UIView()
 
     private lazy var backButton :UIButton = {
         let button = UIButton()
@@ -51,9 +58,16 @@ class MovieDetailsViewController: UIViewController {
         return imgView
     }()
 
+    private let hud : JGProgressHUD = {
+        let hud = JGProgressHUD()
+        hud.textLabel.text = "Loading ..."
+        hud.detailTextLabel.text = "Please Wait"
+        return hud
+    }()
+
+
     lazy var titleLabel :UILabel = {
         let label = UILabel()
-        label.textColor = .white
         label.textAlignment = .left
         label.font = UIFont.systemFont(ofSize: 25, weight: .medium)
         label.numberOfLines = 0
@@ -126,7 +140,6 @@ class MovieDetailsViewController: UIViewController {
 
     lazy var segmentView:CustomSegent = {
         let seg = CustomSegent(frame: .zero, segmentTitles: ["Trailers","Images","Similar"])
-        seg.setSegmentStyleColor(color: AppConstant.COMMON_SUB_COLOR)
         seg.delegate = self
         return seg
     }()
@@ -162,13 +175,18 @@ class MovieDetailsViewController: UIViewController {
 
     override func viewDidLoad() {
         super.viewDidLoad()
+        detailViewModel.delegate = self
         setLayout()
-        setData()
         setBind()
     }
 
+
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+        setupTheme()        
+    }
+
     private func setLayout() {
-        self.view.backgroundColor = AppConstant.COMMON_MAIN_COLOR
         self.navigationController?.setNavigationBarHidden(true, animated: false)
         self.navigationController?.interactivePopGestureRecognizer?.delegate = self
         self.navigationController?.interactivePopGestureRecognizer?.isEnabled = true
@@ -188,6 +206,7 @@ class MovieDetailsViewController: UIViewController {
 
         contentView.addSubview(backdropImage)
         backdropImage.addSubview(backButton)
+
         contentView.addSubview(mainInfoStackView)
         contentView.addSubview(favsButton)
         contentView.addSubview(descriptionView)
@@ -245,59 +264,52 @@ class MovieDetailsViewController: UIViewController {
         doAlignSegment(view: similarView)
     }
 
-    private func setData() {
-        detailViewModel.movieDetailData
-            .observe(on: MainScheduler.instance)
-            .subscribe(onNext: { model in
-                if let model = model {
-                    self.applyDetailData(data: model)
-                }
-            })
-            .disposed(by: self.disposeBag)
-
-        addCollectionViewModel.handleSingleMovieStatus(id: self.contentID)
-        addCollectionViewModel.ifUniqleFavs.observe(on: MainScheduler.instance).subscribe(onNext:{ isEnable in
-            self.favsButton.setStatus(status: isEnable)
-            self.status = isEnable
-        }) .disposed(by: self.disposeBag)
-    }
-
 
     private func setBind() {
         favsButton.rx
             .tap
-            .throttle(.milliseconds(300), scheduler: MainScheduler.instance) // Throttle here
+            .throttle(.milliseconds(300), scheduler: MainScheduler.instance)
             .subscribe { _ in
-            self.addCollectionViewModel.handleSingleMovieStatus(id: self.contentID)
 
-            self.status = !self.status
+                self.addCollectionViewModel.checkIfIsFavsMovie(id: self.contentID) { result in
+                    switch result {
+                    case .success(let (resultBool, favsIntID)):
 
-            if (self.status) {
+                        if (resultBool) {
 
-                guard let userInfo = FetchUserUseCase.readFile() else {
-                    print("Can't get User name")
-                    return
+                            let readyDeleteItem =  FavoriteDeleted(id:favsIntID,deleted: true)
+                            self.favsButton.deleteAddFavorite(item: readyDeleteItem)
+
+                        } else {
+                            
+                            guard let userAccount = UserResponseUseCase.readUserAccount()  else {
+                                print("Can't get User name")
+                                return
+                            }
+                                                    
+
+                             let postModel = PostFavoriteRecordModel(fields:
+                                         FavoriteItems(
+                                                        userName: userAccount,
+                                                        movieID: self.contentID,
+                                                        movieName: self.titleLabel.text!,
+                                                        posterURL: self.posterStr))
+
+                            self.favsButton.setAddFavorite(favorites: postModel)
+
+                        }
+
+                        self.favsButton.setStatus(status: !resultBool)
+
+
+
+                    case .failure(let failure):
+                        print(failure.localizedDescription)
+                    }
                 }
 
-                let postModel = PostFavoriteRecordModel(fields:
-                                                            FavoriteItems(userName: userInfo.login ?? "YuChen Lin",
-                                                                          movieID: self.contentID,
-                                                                          movieName: self.titleLabel.text!, posterURL: self.posterStr))
-                self.favsButton.setAddFavorite(favorites: postModel)
-            } else {
-
-                if (self.addCollectionViewModel.uniqID.value != "") {
-                    let readyDeleteItem =  FavoriteDeleted(id:self.addCollectionViewModel.uniqID.value,deleted: true)
-                    print(readyDeleteItem)
-                    self.favsButton.deleteAddFavorite(item: readyDeleteItem)
-
-                }
-            }
         }.disposed(by: self.disposeBag)
     }
-
-
-
 
     private func applyDetailData (data:MovieDetail) {
 
@@ -328,6 +340,7 @@ class MovieDetailsViewController: UIViewController {
         }
 
         self.titleLabel.text = data.title
+
         self.sublineLabel.text = data.tagline
         self.descriptionView.contentLabel.text = data.overview
 
@@ -342,6 +355,7 @@ class MovieDetailsViewController: UIViewController {
         if (self.popType == .withNavPresent) {
             self.navigationController?.popViewController(animated: true)
         } else {
+            loadingDelegate?.reloadScreen()
             self.dismiss(animated: true,completion: nil)
 
         }
@@ -366,6 +380,49 @@ extension MovieDetailsViewController: CustomSegmentDelegate {
         posterView.isHidden = index == 1 ? false : true
         similarView.isHidden = index == 2 ? false : true
     }
+}
+
+extension MovieDetailsViewController:MovieDetailLoadingDelegate {
+
+
+    func presentMovieDetail() {
+    detailViewModel.movieDetailData
+        .observe(on: MainScheduler.instance)
+        .subscribe(onNext: { model in
+            if let model = model {
+                self.applyDetailData(data: model)
+            }
+        })
+        .disposed(by: self.disposeBag)
+
+    addCollectionViewModel.checkIfIsFavsMovie(id: self.contentID) { result in
+        switch result {
+        case .success(let (resultBool, _)):
+            self.favsButton.setStatus(status: resultBool)
+        case .failure(let error):
+            print(error)
+        }
+     }
+}
+    
+
+
+    func didChange(isLoading: Bool) {
+        if isLoading {
+            hud.show(in: self.view)
+        } else {
+            hud.dismiss()
+        }
+    }
+
+    func showErrorMessage() {
+        hud.textLabel.text = "Fetch Error"
+        hud.indicatorView = JGProgressHUDErrorIndicatorView()
+        hud.show(in: self.view)
+        hud.dismiss(afterDelay: 3.0)
+    }
+    
+
 }
 
 extension MovieDetailsViewController:ClickTrailerDelegate {
@@ -419,3 +476,16 @@ extension MovieDetailsViewController: UIGestureRecognizerDelegate {
         return true
     }
 }
+
+
+extension MovieDetailsViewController:ThemeChangeDelegate {
+    func setupTheme() {
+        self.view.theme.backgroundColor = themeService.attribute {$0.backgroundColor}
+        self.titleLabel.theme.textColor = themeService.attribute {$0.textColor}
+        self.segmentView.setSegmentStyleColor(color: themeService.attribute {$0.segmentSelectColor}.value,unselectColor: themeService.attribute {$0.segmentNormalColor}.value)
+        self.segmentView.segmentAction(sender: segmentView.segments[0])
+        self.segmentView.updateView()
+
+    }
+}
+

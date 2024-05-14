@@ -25,14 +25,16 @@ class RegisterViewModel {
 
             userRegisterService?.sendRequest(user: userData!, status: status, completion: { result in
                 switch result {
-                case .success(let item):
-                    UserReponseUseCase.saveNewUserStatus(userResponse: item)
+                case .success(let _):
+                    UserResponseUseCase.saveUserAccount(account: user)
+                    UserDefaults.standard.set(true, forKey: "hasAlreadyLaunched")
                     self.delegate?.doRegisterAccountAction()
                     self.delegate?.didChange(isLoading: false)
                 case .failure(let error):
                     print(error)
                     self.delegate?.showErrorMessage()
                     self.delegate?.didChange(isLoading: false)
+                    UserDefaults.standard.set(false, forKey: "hasAlreadyLaunched")
                 }
             })
     }

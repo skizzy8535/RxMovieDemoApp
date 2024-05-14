@@ -25,19 +25,3 @@ protocol UserRepository {
     func sendRequest(user:User,status: UserInfoStatus, completion: @escaping (Result<UserInfo, Error>) -> Void)
     func doLogOutRequest(completion:@escaping (Result<Bool,Error> )->Void )
 }
-
-
-
-class MockUserRepository:UserRepository {
-    
-    var mockUserInfoResult :Result<UserInfo, Error> = .failure(UserInfoError.invalidInfo)
-    var mockUserLogResult :Result<Bool, Error> = .failure(false as! Error)
-
-    func sendRequest(user: User, status: UserInfoStatus, completion: @escaping (Result<UserInfo, Error>) -> Void) {
-        completion(mockUserInfoResult)
-    }
-
-    func doLogOutRequest(completion: @escaping (Result<Bool, Error>) -> Void) {
-        completion(mockUserLogResult)
-    }
-}

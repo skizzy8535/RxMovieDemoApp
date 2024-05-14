@@ -42,7 +42,7 @@ class IconLabelView: UIView {
     }()
 
     override init(frame: CGRect) {
-        super.init(frame: frame)
+        super.init(frame: .zero)
         setupView()
     }
 

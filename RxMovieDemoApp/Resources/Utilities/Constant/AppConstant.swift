@@ -13,8 +13,13 @@ struct AppConstant {
 // MARK: UI Related
     static let COMMON_FONT_NORMAL: String = "Helvetica"
     static let COMMON_FONT_BOLD: String = "Helvetica-Bold"
-    static let COMMON_MAIN_COLOR: UIColor = UIColor.init(hex: "0E2440")
-    static let COMMON_SUB_COLOR: UIColor = UIColor(hex: "#F2C069")
+
+    static let LIGHT_MAIN_COLOR: UIColor = .white
+    static let LIGHT_SUB_COLOR: UIColor = .red
+    static let LIGHT_TXT_COLOR: UIColor = .black
+
+    static let DARK_MAIN_COLOR: UIColor = .black // UIColor.init(hex: "0E2440")
+    static let DARK_SUB_COLOR: UIColor = UIColor(hex: "#F2C069")
 
     static let COMMON_NAVIGATION_FONT_SIZE: CGFloat = 14.0
 
@@ -34,6 +39,7 @@ struct AppConstant {
 
     static let SESSION_BASEURL = "https://favqs.com/api/session"
     static let SIGNUP_BASEURL = "https://favqs.com/api/users"
+    
     static let LOGIN_TOKEN = "174c911c47229799a204b550231614ab"
 
 

@@ -12,13 +12,9 @@ import SnapKit
 import MJRefresh
 
 protocol MovieExploreDelegate:AnyObject {
-
     var exploreText:Observable<String>?{get set}
     func setMovieExploreBar()
-
-
 }
-
 
  class MovieExploreViewController: UIViewController {
 
@@ -40,7 +36,6 @@ protocol MovieExploreDelegate:AnyObject {
          layout.itemSize = CGSize(width: defaultSize - 20, height: defaultSize + 40)
          let collectionView = UICollectionView(frame: .zero, collectionViewLayout: layout)
          collectionView.register(MovieExploreCell.self, forCellWithReuseIdentifier: "MovieExploreCell")
-         collectionView.backgroundColor = AppConstant.COMMON_MAIN_COLOR
          return collectionView
      }()
 
@@ -53,7 +48,6 @@ protocol MovieExploreDelegate:AnyObject {
 
      private let noItemView :UIView = {
          let view = UIView()
-         view.backgroundColor = AppConstant.COMMON_MAIN_COLOR
          return view
      }()
 
@@ -61,12 +55,12 @@ protocol MovieExploreDelegate:AnyObject {
 
      override func viewDidLoad() {
          super.viewDidLoad()
-         self.view.backgroundColor =  AppConstant.COMMON_MAIN_COLOR
          self.exploreResultView.rx.setDelegate(self).disposed(by: disposeBag)
          setLayout()
          setMovieExploreBar()
          setMovieExploreResult()
          doMoreExplore()
+         setupTheme()
      }
 
      override func viewWillDisappear(_ animated: Bool) {
@@ -192,3 +186,12 @@ protocol MovieExploreDelegate:AnyObject {
           }
      }
  }
+
+
+extension MovieExploreViewController:ThemeChangeDelegate {
+    func setupTheme() {
+        self.view.theme.backgroundColor = themeService.attribute {$0.backgroundColor}
+        noItemView.theme.backgroundColor = themeService.attribute {$0.backgroundColor}
+        self.exploreResultView.theme.backgroundColor = themeService.attribute {$0.backgroundColor}
+    }
+}

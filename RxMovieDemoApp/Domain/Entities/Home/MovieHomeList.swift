@@ -1,5 +1,5 @@
 //
-//  HomeMovieList.swift
+//  MovieHomeList.swift
 //  RxMovieDemoApp
 //
 //  Created by YuChen Lin on 2024/2/22.
@@ -8,11 +8,11 @@
 import Foundation
 
 
-struct HomeMovieList:Codable {
-    let results:[HomeMovieListData]
+struct MovieHomeList:Codable,Equatable {
+    let results:[MovieHomeListData]
 }
 
-struct HomeMovieListData:Codable,Hashable{
+struct MovieHomeListData:Codable,Hashable{
 
     let id:Int?
     let title:String?
@@ -32,7 +32,7 @@ struct HomeMovieListData:Codable,Hashable{
         hasher.combine(self.id)
     }
 
-    static func == (lhs:HomeMovieListData,rhs:HomeMovieListData) -> Bool{
+    static func == (lhs:MovieHomeListData,rhs:MovieHomeListData) -> Bool{
         return lhs.id == rhs.id
     }
 

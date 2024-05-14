@@ -30,10 +30,8 @@ class MovieTitleReuseView: UICollectionReusableView {
     }
 
     private func configure(){
-      //  backgroundColor =  AppConstant.COMMON_MAIN_COLOR
         addSubview(titleLabel)
-        titleLabel.font = .systemFont(ofSize: 26, weight: .bold)
-      //  titleLabel.textColor = .white
+        titleLabel.font = .systemFont(ofSize: 18, weight: .bold)
         titleLabel.text = title
         titleLabel.snp.makeConstraints { make in
             make.top.left.equalToSuperview().offset(10)

@@ -13,7 +13,7 @@ class MovieExploreCell: UICollectionViewCell {
 
     private let rateLabel:UILabel = {
         let label = UILabel()
-        label.backgroundColor = AppConstant.COMMON_SUB_COLOR
+        label.backgroundColor = AppConstant.DARK_SUB_COLOR
         label.textColor = .white
         label.textAlignment = .center
         label.font = .systemFont(ofSize: 12,weight: .medium)

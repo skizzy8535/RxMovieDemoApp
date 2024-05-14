@@ -139,6 +139,7 @@ class SettingViewModel {
               case .success(let _):
                 self.delegate?.doLogOutAlert()
                 self.delegate?.didChange(isLoading: false)
+                UserDefaults.standard.set(false, forKey: "hasAlreadyLaunched")
               case .failure(let error):
                 self.delegate?.showErrorMessage()
                 self.delegate?.didChange(isLoading: false)

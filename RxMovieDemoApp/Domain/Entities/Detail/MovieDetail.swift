@@ -1,6 +1,6 @@
 //
 //  MovieDetail.swift
-//  RxMovieApp
+//  RxMovieDemoApp
 //
 //  Created by YuChen Lin on 2024/2/20.
 //

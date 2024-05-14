@@ -8,8 +8,6 @@
 import UIKit
 
 class InstructionViewController: UIViewController {
-
-
     private let stackView = UIStackView()
     private let imageView = UIImageView()
     private let titleLabel = UILabel()

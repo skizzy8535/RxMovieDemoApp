@@ -2,7 +2,7 @@
 //  SceneDelegate.swift
 //  RxMovieDemoApp
 //
-//  Created by NeferUser on 2024/4/19.
+//  Created by YuChen Lin on 2024/1/21.
 //
 
 import UIKit
@@ -19,20 +19,23 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
 
         hasAlreadyLaunch = UserDefaults.standard.bool(forKey: "hasAlreadyLaunched")
 
-        if let userInfo = UserInfo.readFile() {
-            let vc = MainTabBarController()
-            window.rootViewController = vc
-        } else {
+//        if let userInfo = UserResponseUseCase.readUserAccount() {
+//            let vc = MainTabBarController()
+//            window.rootViewController = vc
+//        } else {
 
             if (hasAlreadyLaunch){
-                let vc = LoginViewController()
+                let vc = MainTabBarController()
                 window.rootViewController = vc
+                
+//
+//                let vc = OnboardViewController(transitionStyle: .scroll, navigationOrientation: .horizontal, options: nil)
+//                window.rootViewController = vc
+          
              }else{
-                 let vc = OnboardViewController(transitionStyle: .scroll, navigationOrientation: .horizontal, options: nil)
+                 let vc = LoginViewController()
                  window.rootViewController = vc
-                 UserDefaults.standard.set(true, forKey: "hasAlreadyLaunched")
              }
-        }
 
         self.window = window
         window.makeKeyAndVisible()

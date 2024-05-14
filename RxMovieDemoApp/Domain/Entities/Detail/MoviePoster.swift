@@ -1,6 +1,6 @@
 //
-//  MoviePosterModel.swift
-//  RxMovieApp
+//  MoviePoster.swift
+//  RxMovieDemoApp
 //
 //  Created by YuChen Lin on 2024/3/20.
 //
@@ -8,10 +8,10 @@
 import Foundation
 
 struct MoviePoster:Codable {
-    let backdrops:[MoviePosterDetailModel]
+    let backdrops:[MoviePosterDetail]
 }
 
-struct MoviePosterDetailModel:Codable {
+struct MoviePosterDetail:Codable {
     let aspect_ratio: Double
     let file_path:String
 }

@@ -12,7 +12,7 @@ class MovieExploreFilterView: UIView {
     private let filterViewLbl:UILabel  = {
         let label = UILabel()
         label.text = "Sort & Filter"
-        label.textColor = AppConstant.COMMON_SUB_COLOR
+        label.textColor = AppConstant.DARK_SUB_COLOR
         label.font = .systemFont(ofSize: 25, weight: .medium)
         return label
     }()

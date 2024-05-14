@@ -7,12 +7,11 @@
 
 import UIKit
 import SnapKit
+import RxTheme
 
 class SetItemWithImgCell: UITableViewCell {
 
-    private var itemImage = UIImageView()
-
-    private var itemTitle: UILabel = {
+    var itemTitle: UILabel = {
         let label = UILabel()
         label.textColor = .white
         return label
@@ -20,6 +19,7 @@ class SetItemWithImgCell: UITableViewCell {
 
     override init(style: UITableViewCell.CellStyle, reuseIdentifier: String?) {
         super.init(style: style, reuseIdentifier: reuseIdentifier)
+        self.backgroundColor = .white.withAlphaComponent(0.5)
         setLayout()
     }
 
@@ -28,28 +28,20 @@ class SetItemWithImgCell: UITableViewCell {
     }
 
 
-    func setSettingItems(itemName:String,imgName:String){
+    func setSettingItems(itemName:String){
         itemTitle.text = itemName
-        itemImage.image = UIImage(named: "\(imgName)")
     }
 
 
     private func setLayout() {
 
-        contentView.addSubview(itemImage)
         contentView.addSubview(itemTitle)
 
-        itemImage.snp.makeConstraints { make in
-            make.left.equalToSuperview().offset(10)
-            make.centerY.equalToSuperview()
-            make.height.equalTo(25)
-            make.width.equalTo(20)
-        }
-
         itemTitle.snp.makeConstraints { make in
-            make.left.equalTo(itemImage).offset(20)
+            make.left.equalToSuperview().offset(30)
+            make.centerY.equalToSuperview()
             make.top.bottom.equalToSuperview().inset(5)
-            make.right.equalToSuperview().offset(-10)
+            make.right.equalToSuperview().offset(-25)
         }
 
     }

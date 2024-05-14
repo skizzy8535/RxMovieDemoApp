@@ -10,7 +10,7 @@ import RxSwift
 import RxCocoa
 import RxRelay
 import RxDataSources
-
+import RxTheme
 
 protocol ClickTrailerDelegate {
     func clickTrailer(key:String)
@@ -28,18 +28,18 @@ class MovieTrailerView: UIView {
     lazy var trailerView :UITableView = {
         let tableView = UITableView()
         tableView.register(TrailerTableViewCell.self, forCellReuseIdentifier: "TrailerTableViewCell")
-        tableView.backgroundColor = AppConstant.COMMON_MAIN_COLOR
+   //     tableView.backgroundColor = AppConstant.DARK_MAIN_COLOR
         return tableView
     }()
 
     init(id:Int) {
         self.trailerViewModel = MovieTrailerViewModel(contentID: "\(id)")
         super.init(frame: .zero)
-        self.backgroundColor = AppConstant.COMMON_MAIN_COLOR
+     //   self.backgroundColor = AppConstant.DARK_MAIN_COLOR
         trailerView.rx.setDelegate(self).disposed(by: self.disposeBag)
         setLayout()
         bindViewModel()
-
+        setupTheme()
     }
 
     required init?(coder: NSCoder) {
@@ -60,7 +60,6 @@ class MovieTrailerView: UIView {
         let dataSource = RxTableViewSectionedReloadDataSource<SectionModel<String, MovieTrailerDetail>>(
             configureCell: { _, tableView, indexPath, item in
                 let cell = tableView.dequeueReusableCell(withIdentifier: "TrailerTableViewCell", for: indexPath) as! TrailerTableViewCell
-                cell.backgroundColor = AppConstant.COMMON_MAIN_COLOR
                 cell.selectionStyle = .none
                 cell.confireCell(thumbnailStr: item.key, titleStr: item.name, timeStr: item.published_at)
                 return cell
@@ -89,3 +88,8 @@ extension MovieTrailerView :UITableViewDelegate {
     }
 }
 
+extension MovieTrailerView:ThemeChangeDelegate {
+    func setupTheme() {
+        self.theme.backgroundColor = themeService.attribute {$0.backgroundColor}
+    }
+}

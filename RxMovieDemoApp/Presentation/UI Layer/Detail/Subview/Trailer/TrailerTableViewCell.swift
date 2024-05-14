@@ -8,6 +8,7 @@
 import UIKit
 import Kingfisher
 import SnapKit
+import RxTheme
 
 class TrailerTableViewCell: UITableViewCell {
 
@@ -20,7 +21,6 @@ class TrailerTableViewCell: UITableViewCell {
 
     private let titleLabel: UILabel = {
         let label = UILabel()
-        label.textColor = .white
         label.font = UIFont.systemFont(ofSize: 18, weight: .medium)
         label.numberOfLines = 2
         label.sizeToFit()
@@ -38,6 +38,7 @@ class TrailerTableViewCell: UITableViewCell {
     override init(style: UITableViewCell.CellStyle, reuseIdentifier: String?) {
         super.init(style: style, reuseIdentifier: reuseIdentifier)
         setLayout()
+        setupTheme()
     }
 
     required init?(coder: NSCoder) {
@@ -49,6 +50,7 @@ class TrailerTableViewCell: UITableViewCell {
         let resource = KF.ImageResource(downloadURL: thumbNailURL)
         thumbnailImgView.kf.setImage(with: resource)
         titleLabel.text = titleStr
+        titleLabel.theme.textColor = themeService.attribute {$0.textColor}
         timeLabel.text = String(timeStr.prefix(10))
     }
 
@@ -82,4 +84,12 @@ class TrailerTableViewCell: UITableViewCell {
 
     }
 
+}
+
+
+extension TrailerTableViewCell:ThemeChangeDelegate {
+    func setupTheme() {
+        self.theme.backgroundColor = themeService.attribute {$0.backgroundColor}
+        self.titleLabel.theme.textColor = themeService.attribute {$0.textColor}
+    }
 }

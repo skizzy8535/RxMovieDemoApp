@@ -18,7 +18,8 @@ class MovieDownloadProvider: DownloadProviderProtocol{
     func fetchMovieItems (url:String,
                           onComplete: @escaping (Result<Data,Error>) -> Void ) {
 
-        AF.request(url).response { response in
+
+        AF.request(url).responseData(queue: DispatchQueue.global()) { response in
 
             print(response.request?.url?.absoluteString ?? "")
 
@@ -39,7 +40,6 @@ class MovieDownloadProvider: DownloadProviderProtocol{
             onComplete(.success(data))
 
         }
-
     }
 
 }

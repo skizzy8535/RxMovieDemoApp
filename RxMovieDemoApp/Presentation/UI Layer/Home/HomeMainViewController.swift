@@ -2,7 +2,7 @@
 //  HomeMainViewController.swift
 //  RxMovieDemoApp
 //
-//  Created by NeferUser on 2024/4/19.
+//  Created by YuChen Lin on 2024/4/19.
 //
 
 import UIKit
@@ -22,7 +22,7 @@ enum HomeSection:String,CaseIterable{
     case topRatedSection = "Top Rated"
 }
 
-class HomeMainViewController:UIViewController,MovieHomeLoadingDelegate {
+class HomeMainViewController:UIViewController {
 
     static let sectionHeaderElementKind = "sectionHeaderElementkind"
     private let disposeBag = DisposeBag()
@@ -41,6 +41,7 @@ class HomeMainViewController:UIViewController,MovieHomeLoadingDelegate {
     }()
 
 
+    private lazy var homeTopView = HomeTopView()
     private lazy var homeMovieCollectionView:UICollectionView = {
         let collectionView = UICollectionView(frame: .zero, collectionViewLayout: generateLayout())
         collectionView.delegate = self
@@ -59,79 +60,26 @@ class HomeMainViewController:UIViewController,MovieHomeLoadingDelegate {
         if (settingViewModel.getAppLockState()) {
             settingViewModel.appLockValidation()
         }
-        homeViewModel.fetchAll()
+        homeViewModel.setAll()
         setItemPlacement()
         timer = Timer.scheduledTimer(timeInterval: 5, target: self, selector: #selector(autoScrollBanner), userInfo: nil, repeats: true)
     }
 
-    func didChange(isLoading: Bool) {
-        if isLoading {
-            hud.show(in: self.view)
-        } else {
-            hud.dismiss()
-        }
-    }
-
-    func showErrorMessage(error: String) {
-        hud.textLabel.text = "Fetch Error"
-        hud.indicatorView = JGProgressHUDErrorIndicatorView()
-        hud.show(in: self.view)
-        hud.dismiss(afterDelay: 3.0)
-    }
-
-    func presentHomeDisplayItems(nowPlayingMovies: [MovieHomeListData],
-                                 popularMovies: [MovieHomeListData],
-                                 upcomingMovies: [MovieHomeListData],
-                                 topRatedMovies: [MovieHomeListData]) {
-
-        DispatchQueue.main.async {  [weak self] in
-            guard let self = self else { return }
-
-            self.movieDataSource = UICollectionViewDiffableDataSource<HomeSection, MovieHomeListData>(collectionView: self.homeMovieCollectionView, cellProvider: { (collectionView, indexPath, item) -> UICollectionViewCell? in
-                let section = HomeSection.allCases[indexPath.section]
-
-                guard let cell = collectionView.dequeueReusableCell(withReuseIdentifier: "HomeMovieCell", for: indexPath) as? HomeMovieCell else { return UICollectionViewCell() }
-
-                switch section {
-                case .nowPlayingSection:
-                    cell.title = item.title
-                    cell.photoURLString =  MovieUseCase.configureUrlString(imagePath: item.backdrop_path)
-                case .popularSection, .upcomingSection, .topRatedSection:
-                    cell.title = ""
-                    cell.photoURLString =  MovieUseCase.configureUrlString(imagePath: item.poster_path)
-                }
-                return cell
-            })
-
-            self.movieDataSource.supplementaryViewProvider = { (collectionView, kind, indexPath) -> UICollectionReusableView? in
-                let section = HomeSection.allCases[indexPath.section]
-
-                guard let reuseView = collectionView.dequeueReusableSupplementaryView(ofKind: HomeMainViewController.sectionHeaderElementKind, withReuseIdentifier: "MovieTitleReuseView", for: indexPath) as? MovieTitleReuseView else { return nil }
-
-                reuseView.title = section.rawValue
-                reuseView.titleLabel.theme.textColor = themeService.attribute { $0.textColor }
-                return reuseView
-            }
-
-            var movieSnapshot = NSDiffableDataSourceSnapshot<HomeSection, MovieHomeListData>()
-            movieSnapshot.appendSections([.nowPlayingSection, .popularSection, .upcomingSection, .topRatedSection])
-            movieSnapshot.appendItems(nowPlayingMovies, toSection: .nowPlayingSection)
-            movieSnapshot.appendItems(popularMovies, toSection: .popularSection)
-            movieSnapshot.appendItems(upcomingMovies, toSection: .upcomingSection)
-            movieSnapshot.appendItems(topRatedMovies, toSection: .topRatedSection)
-            self.movieDataSource.apply(movieSnapshot, animatingDifferences: false)
-
-            setupTheme()
-            self.homeMovieCollectionView.isHidden = false
-        }
-
-    }
-
     private func setItemPlacement(){
+        self.view.addSubview(self.homeTopView)
         self.view.addSubview(self.homeMovieCollectionView)
-        self.homeMovieCollectionView.snp.makeConstraints { make in
-            make.edges.equalToSuperview()
+
+
+        self.homeTopView.snp.makeConstraints { make in
+            make.top.equalTo(self.view.safeAreaLayoutGuide)
+            make.left.right.equalToSuperview()
+            make.height.equalTo(70)
         }
+        self.homeMovieCollectionView.snp.makeConstraints { make in
+            make.top.equalTo(self.homeTopView.snp.bottom)
+            make.left.right.bottom.equalToSuperview()
+        }
+        
         homeMovieCollectionView.isHidden = true
     }
 
@@ -166,17 +114,15 @@ class HomeMainViewController:UIViewController,MovieHomeLoadingDelegate {
         return layout
     }
 
-
-
     private func getFullTypeSection() -> NSCollectionLayoutSection {
-        let itemSize = NSCollectionLayoutSize(widthDimension: .fractionalWidth(1.0), heightDimension: .fractionalHeight(1.0))
+        let itemSize = NSCollectionLayoutSize(widthDimension: .fractionalWidth(0.95), heightDimension: .fractionalHeight(1.0))
         let items = NSCollectionLayoutItem(layoutSize: itemSize)
 
-        let groupSize = NSCollectionLayoutSize(widthDimension: .fractionalWidth(1.0), heightDimension: .fractionalWidth(0.65))
+        let groupSize = NSCollectionLayoutSize(widthDimension: .fractionalWidth(0.9), heightDimension: .absolute(500))
 
         let group = NSCollectionLayoutGroup.horizontal(layoutSize: groupSize, repeatingSubitem: items, count: 1)
         let section = NSCollectionLayoutSection(group: group)
-        section.orthogonalScrollingBehavior = .groupPaging
+        section.orthogonalScrollingBehavior = .groupPagingCentered
         return section
     }
 
@@ -185,7 +131,7 @@ class HomeMainViewController:UIViewController,MovieHomeLoadingDelegate {
         let itemSize = NSCollectionLayoutSize(widthDimension: .fractionalWidth(1.0), heightDimension: .fractionalHeight(1.0))
         let items = NSCollectionLayoutItem(layoutSize: itemSize)
 
-        let groupSize = NSCollectionLayoutSize(widthDimension: .fractionalWidth(0.53), heightDimension: .absolute(290))
+        let groupSize = NSCollectionLayoutSize(widthDimension: .fractionalWidth(0.4), heightDimension: .absolute(190))
         let group = NSCollectionLayoutGroup.horizontal(layoutSize: groupSize, repeatingSubitem: items, count: 1)
         group.contentInsets = NSDirectionalEdgeInsets(top: 5, leading: 5, bottom: 5, trailing: 5)
 
@@ -246,6 +192,73 @@ extension HomeMainViewController:UICollectionViewDelegate {
     }
 
 }
+
+extension HomeMainViewController:MovieHomeLoadingDelegate {
+    func didChange(isLoading: Bool) {
+        if isLoading {
+            hud.show(in: self.view)
+        } else {
+            hud.dismiss()
+        }
+    }
+
+    func showErrorMessage() {
+        hud.textLabel.text = "Fetch Error"
+        hud.indicatorView = JGProgressHUDErrorIndicatorView()
+        hud.show(in: self.view)
+        hud.dismiss(afterDelay: 3.0)
+    }
+
+
+    func presentHomeDisplayItems(nowPlayingMovies: [MovieHomeListData],
+                                 popularMovies: [MovieHomeListData],
+                                 upcomingMovies: [MovieHomeListData],
+                                 topRatedMovies: [MovieHomeListData]) {
+
+        DispatchQueue.main.async {  [weak self] in
+            guard let self = self else { return }
+
+            self.movieDataSource = UICollectionViewDiffableDataSource<HomeSection, MovieHomeListData>(collectionView: self.homeMovieCollectionView, cellProvider: { (collectionView, indexPath, item) -> UICollectionViewCell? in
+                let section = HomeSection.allCases[indexPath.section]
+
+                guard let cell = collectionView.dequeueReusableCell(withReuseIdentifier: "HomeMovieCell", for: indexPath) as? HomeMovieCell else { return UICollectionViewCell() }
+
+                switch section {
+                case .nowPlayingSection:
+                    cell.title = item.title
+                    cell.photoURLString =  MovieUseCase.configureUrlString(imagePath: item.poster_path)
+                case .popularSection, .upcomingSection, .topRatedSection:
+                    cell.title = ""
+                    cell.photoURLString =  MovieUseCase.configureUrlString(imagePath: item.poster_path)
+                }
+                return cell
+            })
+
+            self.movieDataSource.supplementaryViewProvider = { (collectionView, kind, indexPath) -> UICollectionReusableView? in
+                let section = HomeSection.allCases[indexPath.section]
+
+                guard let reuseView = collectionView.dequeueReusableSupplementaryView(ofKind: HomeMainViewController.sectionHeaderElementKind, withReuseIdentifier: "MovieTitleReuseView", for: indexPath) as? MovieTitleReuseView else { return nil }
+
+                reuseView.title = section.rawValue
+                reuseView.titleLabel.theme.textColor = themeService.attribute { $0.textColor }
+                return reuseView
+            }
+
+            var movieSnapshot = NSDiffableDataSourceSnapshot<HomeSection, MovieHomeListData>()
+            movieSnapshot.appendSections([.nowPlayingSection, .popularSection, .upcomingSection, .topRatedSection])
+            movieSnapshot.appendItems(nowPlayingMovies, toSection: .nowPlayingSection)
+            movieSnapshot.appendItems(popularMovies, toSection: .popularSection)
+            movieSnapshot.appendItems(upcomingMovies, toSection: .upcomingSection)
+            movieSnapshot.appendItems(topRatedMovies, toSection: .topRatedSection)
+            self.movieDataSource.apply(movieSnapshot, animatingDifferences: false)
+
+            setupTheme()
+            self.homeMovieCollectionView.isHidden = false
+        }
+
+    }
+}
+
 
 extension HomeMainViewController:ThemeChangeDelegate {
     func setupTheme() {

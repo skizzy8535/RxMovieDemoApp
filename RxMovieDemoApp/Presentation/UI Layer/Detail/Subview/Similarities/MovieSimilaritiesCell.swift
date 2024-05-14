@@ -9,9 +9,8 @@ import UIKit
 import Kingfisher
 
 class MovieSimilaritiesCell: UICollectionViewCell {
-    private let rateLabel:UILabel = {
+    private var rateLabel:UILabel = {
         let label = UILabel()
-        label.backgroundColor = AppConstant.COMMON_SUB_COLOR
         label.textColor = .white
         label.textAlignment = .center
         label.font = .systemFont(ofSize: 12,weight: .medium)
@@ -28,6 +27,7 @@ class MovieSimilaritiesCell: UICollectionViewCell {
 
     override init(frame: CGRect) {
         super.init(frame: frame)
+        setupTheme()
     }
 
     required init?(coder: NSCoder) {
@@ -61,5 +61,13 @@ class MovieSimilaritiesCell: UICollectionViewCell {
             make.width.equalTo(30)
             make.height.equalTo(25)
         }
+    }
+}
+
+
+extension MovieSimilaritiesCell:ThemeChangeDelegate {
+    func setupTheme() {
+        self.theme.backgroundColor = themeService.attribute {$0.backgroundColor}
+        rateLabel.theme.backgroundColor = themeService.attribute {$0.tabBarSelectColor}
     }
 }

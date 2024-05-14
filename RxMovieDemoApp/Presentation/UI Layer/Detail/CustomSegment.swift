@@ -7,16 +7,17 @@
 
 import UIKit
 import SnapKit
+import RxTheme
 
 protocol CustomSegmentDelegate:AnyObject {
     func change(to index:Int)
 }
 
-class CustomSegent: UIView {
+class CustomSegent: UIView{
 
    weak var delegate:CustomSegmentDelegate?
 
-    private var segments:[UIButton]!
+    var segments:[UIButton]!
     private var segmentTitles:[String]! {
         didSet{
             setTitles(titles: segmentTitles)
@@ -43,12 +44,15 @@ class CustomSegent: UIView {
         updateView()
     }
 
-    func setSegmentStyleColor(color:UIColor) {
+    func setSegmentStyleColor(color:UIColor ,unselectColor:UIColor) {
         selectTextColor = color
         selectViewColor = color
+        textColor = unselectColor
     }
 
-    private func updateView() {
+
+
+     func updateView() {
         createCustomSegemnt()
         configFullSegmentView()
         configSelectorView()

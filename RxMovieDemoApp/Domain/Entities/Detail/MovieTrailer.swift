@@ -1,6 +1,6 @@
 //
-//  MovieTrailerModel.swift
-//  RxMovieApp
+//  MovieTrailer.swift
+//  RxMovieDemoApp
 //
 //  Created by YuChen Lin on 2024/3/20.
 //
@@ -11,11 +11,11 @@ import RxCocoa
 import RxDataSources
 
 
-struct MovieTrailers:Codable {
-    let results:[MovieTrailerDetailModel]
+struct MovieTrailer:Codable {
+    let results:[MovieTrailerDetail]
 }
 
-struct MovieTrailerDetailModel: Codable, IdentifiableType {
+struct MovieTrailerDetail: Codable, IdentifiableType {
     let name: String
     let key: String
     let published_at: String
@@ -23,6 +23,6 @@ struct MovieTrailerDetailModel: Codable, IdentifiableType {
     typealias Identity = String
 
     var identity: String {
-        return key // Assuming key is unique for each trailer
+        return key
     }
 }

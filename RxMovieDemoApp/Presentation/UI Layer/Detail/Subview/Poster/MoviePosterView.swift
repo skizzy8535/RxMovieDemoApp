@@ -17,7 +17,6 @@ class MoviePosterView: UIView {
 
     private lazy var posterView :UITableView = {
         let tableView = UITableView()
-        tableView.backgroundColor = AppConstant.COMMON_MAIN_COLOR
         tableView.register(PosterTableViewCell.self, forCellReuseIdentifier: "PosterTableViewCell")
         return tableView
     }()
@@ -26,9 +25,9 @@ class MoviePosterView: UIView {
     init(id:Int) {
         self.viewModel = MoviePosterViewModel(id: "\(id)")
         super.init(frame: .zero)
-        self.backgroundColor = AppConstant.COMMON_MAIN_COLOR
         setLayout()
         bindPosterData()
+        setupTheme()
     }
 
     required init?(coder: NSCoder) {
@@ -48,11 +47,17 @@ class MoviePosterView: UIView {
             .observe(on: MainScheduler.instance)
             .bind(to: posterView.rx.items) { (tableView,indexPath,item) in
             let cell  = tableView.dequeueReusableCell(withIdentifier: "PosterTableViewCell") as! PosterTableViewCell
-            cell.backgroundColor = AppConstant.COMMON_MAIN_COLOR
             cell.selectionStyle = .none
             cell.configureCell(posterPath: item.file_path, ratio: item.aspect_ratio, fixedWidth: self.posterView.bounds.width-20)
             self.asceptRatio = item.aspect_ratio
             return cell
         }.disposed(by: self.disposeBag)
+    }
+}
+
+
+extension MoviePosterView:ThemeChangeDelegate {
+    func setupTheme() {
+        self.theme.backgroundColor = themeService.attribute {$0.backgroundColor}
     }
 }

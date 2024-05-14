@@ -13,7 +13,6 @@ class MovieDescriptionView: UIView {
 
     lazy var titleLabel :UILabel = {
         let label = UILabel()
-        label.textColor = .white
         label.textAlignment = .left
         label.font = UIFont.systemFont(ofSize: 20, weight: .medium)
         label.numberOfLines = 0
@@ -47,6 +46,7 @@ class MovieDescriptionView: UIView {
     override init(frame: CGRect) {
         super.init(frame: frame)
         setupView()
+        setupTheme()
     }
 
     required init?(coder aDecoder: NSCoder) {
@@ -72,3 +72,12 @@ class MovieDescriptionView: UIView {
         }
     }
 }
+
+
+
+extension MovieDescriptionView:ThemeChangeDelegate {
+    func setupTheme() {
+        self.titleLabel.theme.textColor = themeService.attribute {$0.textColor}
+    }
+}
+

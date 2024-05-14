@@ -2,7 +2,7 @@
 //  RegisterViewController.swift
 //  RxMovieDemoApp
 //
-//  Created by NeferUser on 2024/4/19.
+//  Created by YuChen Lin on 2024/4/19.
 //
 
 import UIKit
@@ -10,43 +10,52 @@ import SnapKit
 import RxSwift
 import RxCocoa
 import RxRelay
+import JGProgressHUD
+
 
 class RegisterViewController: UIViewController {
     private let disposeBag = DisposeBag()
-    private var userModel :User?
+    private var registerViewModel = RegisterViewModel()
 
    private lazy var backButton :UIButton = {
         let button = UIButton()
         button.setImage(UIImage(systemName: "chevron.backward"), for: .normal)
-        button.tintColor = .blue
+        button.tintColor = AppConstant.DARK_SUB_COLOR
         return button
+    }()
+
+    private let hud : JGProgressHUD = {
+        let hud = JGProgressHUD()
+        return hud
     }()
 
     private let registerTitle :UILabel = {
         let label = UILabel()
-        label.text = "Register to Your Account"
+        label.text = "Register Your Account"
         label.font = .systemFont(ofSize: 25,weight: .bold)
+        label.textColor = .white
         label.textAlignment = .center
         return label
     }()
 
-    private lazy var registerNameBgView = makeTextFieldBg(name:"Regiser Login Name")
+    private lazy var regiEmailBgView = makeTextFieldBg(imageName: "Email")
     private var regiNameTextField:UITextField!
 
 
-    private lazy var regiEmailBgView = makeTextFieldBg(name:"Regiser Email")
+    private lazy var registerNameBgView = makeTextFieldBg(imageName: "Person")
     private var regiEmailTextField:UITextField!
 
-    private lazy var regiPasswordBgView = makeTextFieldBg(name:"Regiser Password")
+    private lazy var regiPasswordBgView = makeTextFieldBg(imageName: "Password")
     private var regiPassTextField:UITextField!
 
-    private lazy var registerButton = makeButton(withText:"Login")
+    private lazy var registerButton = makeButton(withText:"Register")
 
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        self.view.backgroundColor = .white
+        self.view.backgroundColor = AppConstant.DARK_MAIN_COLOR
         setBinding()
+        registerViewModel.delegate = self
         setLayout()
     }
 
@@ -68,24 +77,7 @@ class RegisterViewController: UIViewController {
                     return print("password is invalid")
                 }
 
-
-                let info = UserDetail(login:userName,email: email, password: password)
-                self.userModel = User(user: info)
-
-
-                UserRepository().sendRequest(user: self.userModel!, status: .signUp) { result in
-                    switch result {
-                    case .success(let success):
-                        DispatchQueue.main.async {
-                            let mainVC = MainTabBarController()
-                            mainVC.modalPresentationStyle = .fullScreen
-                            mainVC.modalTransitionStyle = .crossDissolve
-                            self.present(mainVC, animated: true)
-                        }
-                    case .failure(let error):
-                        self.showAlert(message: error.localizedDescription)
-                    }
-                }
+                registerViewModel.doUserRegister(user: userName, password: password, status: .register)
 
             })
             .disposed(by: disposeBag)
@@ -117,13 +109,13 @@ class RegisterViewController: UIViewController {
 
         registerTitle.snp.makeConstraints { make in
             make.centerX.equalToSuperview()
-            make.centerY.equalToSuperview().offset(-100)
+            make.top.equalTo(self.view.safeAreaLayoutGuide).offset(50)
             make.left.right.equalToSuperview().inset(20)
             make.height.equalTo(60)
         }
 
         registerNameBgView.snp.makeConstraints { make in
-            make.top.equalTo(registerTitle.snp.bottom).offset(20)
+            make.top.equalTo(registerTitle.snp.bottom).offset(50)
             make.left.right.equalToSuperview().inset(30)
             make.height.equalTo(44)
         }
@@ -137,7 +129,7 @@ class RegisterViewController: UIViewController {
         }
 
         regiEmailBgView.snp.makeConstraints { make in
-            make.top.equalTo(registerNameBgView.snp.bottom).offset(10)
+            make.top.equalTo(registerNameBgView.snp.bottom).offset(25)
             make.left.right.equalToSuperview().inset(30)
             make.height.equalTo(44)
         }
@@ -151,7 +143,7 @@ class RegisterViewController: UIViewController {
         }
 
         regiPasswordBgView.snp.makeConstraints { make in
-            make.top.equalTo(regiEmailBgView.snp.bottom).offset(10)
+            make.top.equalTo(regiEmailBgView.snp.bottom).offset(25)
             make.left.right.equalToSuperview().inset(30)
             make.height.equalTo(44)
         }
@@ -165,21 +157,21 @@ class RegisterViewController: UIViewController {
         }
 
         registerButton.snp.makeConstraints { make in
-            make.top.equalTo(regiPassTextField.snp.bottom).offset(10)
+            make.top.equalTo(regiPassTextField.snp.bottom).offset(30)
             make.left.right.equalToSuperview().inset(25)
             make.height.equalTo(44)
         }
 
     }
 
-    private func makeTextFieldBg(name:String) -> UIView {
+    private func makeTextFieldBg(imageName:String) -> UIView {
         let textFieldBg = UIView()
         textFieldBg.isUserInteractionEnabled = true
         textFieldBg.backgroundColor = .systemGray4
         textFieldBg.layer.cornerRadius = 8
 
         let imageView = UIImageView()
-        imageView.image = UIImage(named: name)
+        imageView.image = UIImage(named: imageName)
         imageView.tintColor = .darkGray
 
         textFieldBg.addSubview(imageView)
@@ -206,19 +198,44 @@ class RegisterViewController: UIViewController {
         let button = UIButton()
         button.setTitle(withText, for: .normal)
         button.titleLabel?.adjustsFontSizeToFitWidth = true
-        button.backgroundColor = .systemBlue
+        button.backgroundColor = AppConstant.DARK_SUB_COLOR
         button.layer.cornerRadius = 8
         return button
     }
 
+}
 
-    private func showAlert(message: String) {
-        let alertController = UIAlertController(title: "Error", message: message, preferredStyle: .alert)
-        let okAction = UIAlertAction(title: "OK", style: .default, handler: nil)
-        alertController.addAction(okAction)
+extension RegisterViewController:RegisterLoadDelegate{
+
+    func doRegisterAccountAction() {
         DispatchQueue.main.async {
-            self.present(alertController, animated: true, completion: nil)
+            let mainVC = MainTabBarController()
+            mainVC.modalPresentationStyle = .fullScreen
+            mainVC.modalTransitionStyle = .crossDissolve
+            self.present(mainVC, animated: true)
+        }
+    }
+    
+
+    func didChange(isLoading: Bool) {
+        if isLoading {
+            hud.show(in: self.view)
+        } else {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+                self.hud.dismiss()
+            }
+        }
+    }
+    
+
+    func showErrorMessage() {
+        DispatchQueue.main.async { [self] in
+            hud.textLabel.text = "Register Error"
+            hud.detailTextLabel.text = "Either Username or password format are incorrect"
+            hud.indicatorView = JGProgressHUDErrorIndicatorView()
+            hud.dismiss(afterDelay: 2.0,animated: true)
         }
     }
 
 }
+

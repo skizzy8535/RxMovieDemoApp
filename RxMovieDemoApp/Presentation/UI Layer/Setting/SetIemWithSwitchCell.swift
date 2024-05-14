@@ -9,6 +9,7 @@ import RxSwift
 import RxRelay
 import RxCocoa
 import SnapKit
+import RxTheme
 
 protocol SetItemWithSwitchCellDelegate: AnyObject {
     func toggleStatusDidChange(_ cell: SetItemWithSwitchCell, isOn: Bool)
@@ -22,7 +23,7 @@ class SetItemWithSwitchCell: UITableViewCell {
     private var itemImage = UIImageView()
     private let disposeBag = DisposeBag()
 
-    private var itemTitle: UILabel = {
+    var itemTitle: UILabel = {
         let label = UILabel()
         label.textColor = .white
         return label
@@ -52,7 +53,6 @@ class SetItemWithSwitchCell: UITableViewCell {
     func setSettingItems(itemName:String,isOn:Bool) {
         itemTitle.text = itemName
         toggleSwitch.isOn = isOn
-
     }
 
     private func setLayout() {

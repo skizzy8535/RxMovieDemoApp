@@ -35,12 +35,10 @@ class OnboardViewController: UIPageViewController{
         delegate = self
         pageControl.addTarget(self, action: #selector(doTapPageControl(_:)), for: .valueChanged)
 
-        let pageOne = InstructionViewController(imageName: "Filter", titleText: "Welcome", subTitleText: "Welcome 1")
-
-        let pageTwo = InstructionViewController(imageName: "AppIcon", titleText: "Get the Latest Movie News", subTitleText: "You can access the latest trailer ....")
-
-        let pageThree = InstructionViewController(imageName: "OnBoardScreen", titleText: "Favorites", subTitleText: "After saw the info , you can save it to your Favorites")
-
+        let pageOne = InstructionViewController(imageName: "Info", titleText: "Get the Latest Movie News", subTitleText:
+                                                    "You can access all movie info \n Including the lastest movie")
+        let pageTwo = InstructionViewController(imageName: "OnBoardScreen", titleText: "Collect your favorite Movie", subTitleText: "After saw the info \n you can save it to  Favorites list")
+        let pageThree = InstructionViewController(imageName: "Devices", titleText: "Watch On any device", subTitleText: "Watch on your phone ,table without paying more")
         let pageFour = LoginViewController()
 
         instructionPages.append(contentsOf: [pageOne,pageTwo,pageThree,pageFour])
@@ -51,19 +49,19 @@ class OnboardViewController: UIPageViewController{
     private func setPageSelectStyle(){
         self.view.backgroundColor = .white
         pageControl.translatesAutoresizingMaskIntoConstraints = false
-        pageControl.currentPageIndicatorTintColor = AppConstant.COMMON_SUB_COLOR
+        pageControl.currentPageIndicatorTintColor = AppConstant.LIGHT_SUB_COLOR
         pageControl.pageIndicatorTintColor = .lightGray
         pageControl.numberOfPages = instructionPages.count
         pageControl.currentPage = scrollPage
 
         skipButton.translatesAutoresizingMaskIntoConstraints = false
         skipButton.setTitle("Skip", for: .normal)
-        skipButton.setTitleColor(AppConstant.COMMON_SUB_COLOR, for: .normal)
+        skipButton.setTitleColor(AppConstant.LIGHT_SUB_COLOR, for: .normal)
         skipButton.addTarget(self, action: #selector(skipTapped(_ :)), for: .primaryActionTriggered)
 
         nextButton.translatesAutoresizingMaskIntoConstraints = false
         nextButton.setTitle("Next", for: .normal)
-        nextButton.setTitleColor(AppConstant.COMMON_SUB_COLOR, for: .normal)
+        nextButton.setTitleColor(AppConstant.LIGHT_TXT_COLOR, for: .normal)
         nextButton.addTarget(self, action: #selector(nextTapped(_ :)), for: .primaryActionTriggered)
     }
 
@@ -90,9 +88,7 @@ class OnboardViewController: UIPageViewController{
         skipButtonTopAnchor?.isActive = true
         nextButtonTopAnchor?.isActive = true
         pageControlBottomAnchor?.isActive = true
-
     }
-
 
     @objc func doTapPageControl(_ sender:UIPageControl) {
         setViewControllers([instructionPages[sender.currentPage]], direction: .forward, animated: true)
@@ -133,9 +129,9 @@ class OnboardViewController: UIPageViewController{
 
 
     private func hideControls(){
-        pageControlBottomAnchor?.constant = -80
-        skipButtonTopAnchor?.constant = -80
-        nextButtonTopAnchor?.constant = -80
+        pageControlBottomAnchor?.constant = -100
+        skipButtonTopAnchor?.constant = -100
+        nextButtonTopAnchor?.constant = -100
     }
 
     private func showControls(){

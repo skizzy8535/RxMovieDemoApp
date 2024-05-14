@@ -1,6 +1,6 @@
 //
-//  MovieExploreListModel.swift
-//  RxMovieApp
+//  MovieExploreList.swift
+//  RxMovieDemoApp
 //
 //  Created by YuChen Lin on 2024/2/19.
 //
@@ -9,8 +9,8 @@ import Foundation
 import RxSwift
 import RxDataSources
 
-struct MovieExploreListModel:Codable {
-    let results:[ExploreListData]
+struct MovieExploreList:Codable {
+    let results:[MovieExploreListData]
 }
 
 struct MovieExploreListData:Codable{

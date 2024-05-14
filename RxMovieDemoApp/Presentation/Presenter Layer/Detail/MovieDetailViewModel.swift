@@ -32,12 +32,6 @@ class MovieDetailViewModel {
 
             switch result {
             case .success(let detailItems):
-
-//                let detailModels = Observable.just(detailItems)
-//
-//                detailModels
-//                    .bind(to: movieDetailData)
-//                    .disposed(by: self.disposeBag)
                 self.movieDetailData.accept(detailItems)
 
                 self.delegate?.presentMovieDetail()

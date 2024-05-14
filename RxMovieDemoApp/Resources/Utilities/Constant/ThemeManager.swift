@@ -16,26 +16,72 @@ protocol ThemeManager {
     var tabBarNormalColor:UIColor {get}
     var segmentSelectColor:UIColor {get}
     var segmentNormalColor:UIColor {get}
-    var 
     var backButtonColor:UIColor {get}
+    var tableViewThemeColor:UIColor {get}
 }
 
 
+struct LightTheme :ThemeManager {
+    var backgroundColor: UIColor = AppConstant.LIGHT_MAIN_COLOR
+    var textColor: UIColor = AppConstant.LIGHT_TXT_COLOR
+    var tabBarSelectColor: UIColor = AppConstant.LIGHT_SUB_COLOR
+    var tabBarNormalColor: UIColor = .gray
+    var segmentSelectColor: UIColor =  AppConstant.LIGHT_SUB_COLOR
+    var segmentNormalColor: UIColor = .black
+    var backButtonColor: UIColor = AppConstant.LIGHT_TXT_COLOR
+    var tableViewThemeColor:UIColor = .lightGray.withAlphaComponent(0.05)
+}
 
-//struct LightTheme :ThemeManager {
-//    var backgroundColor: UIColor = .white
-//    var textColor: UIColor = .black
-//    var tabBarColor: UIColor = .red
-//    var segmentSColor: UIColor = .red
-//    var backButtonColor: UIColor = .black
-//}
-//
-//
-//
-//struct DarkTheme :ThemeManager {
-//    var backgroundColor: UIColor = AppConstant.COMMON_MAIN_COLOR
-//    var textColor: UIColor = .white
-//    var tabBarColor: UIColor = AppConstant.COMMON_SUB_COLOR
-//    var segmentColor: UIColor = .
-//    var backButtonColor: UIColor
-//}
+
+struct DarkTheme :ThemeManager {
+    var backgroundColor: UIColor = AppConstant.DARK_MAIN_COLOR
+    var textColor: UIColor = .white
+    var tabBarSelectColor: UIColor = AppConstant.DARK_SUB_COLOR
+    var tabBarNormalColor: UIColor = .white
+    var segmentSelectColor: UIColor = AppConstant.DARK_SUB_COLOR
+    var segmentNormalColor: UIColor = .white
+    var backButtonColor: UIColor = .white
+    var tableViewThemeColor:UIColor  = .lightGray.withAlphaComponent(0.1)
+}
+
+
+enum ThemeType:String, ThemeProvider {
+    case light,dark
+
+    var associatedObject: ThemeManager {
+        switch self {
+          case .light:
+            return LightTheme()
+          case .dark:
+            return DarkTheme()
+        }
+    }
+}
+
+struct ThemeService {
+    static var currentTheme: ThemeType {
+        get {
+            if let savedTheme = UserDefaults.standard.string(forKey: "SelectedTheme"),
+               let themeType = ThemeType(rawValue: savedTheme) {
+                return themeType
+            } else {
+                return .dark
+            }
+        }
+        set {
+            UserDefaults.standard.set(newValue.rawValue, forKey: "SelectedTheme")
+        }
+    }
+}
+
+var selectedTheme: ThemeType {
+    get {
+        return ThemeService.currentTheme
+    }
+    set {
+        ThemeService.currentTheme = newValue
+    }
+}
+
+
+var themeService = ThemeType.service(initial: selectedTheme)

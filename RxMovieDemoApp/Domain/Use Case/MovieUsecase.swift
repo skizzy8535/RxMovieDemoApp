@@ -56,8 +56,6 @@ class MovieUseCase: MovieUseCaseProtocol {
         return "https://api.themoviedb.org/3/search/movie?query=\(keyword)&api_key=\(AppConstant.TMDB_API_KEY)&language=en-US&page=\(page)"
     }
 
-
-
     /// Get Trailer
 
     static func configureUrlString(trailerID:String) -> String {

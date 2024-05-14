@@ -24,6 +24,7 @@ class PosterTableViewCell: UITableViewCell {
         super.init(style: style, reuseIdentifier: reuseIdentifier)
         contentView.addSubview(posterImgView)
         setLayout()
+        setupTheme()
     }
 
     required init?(coder: NSCoder) {
@@ -42,5 +43,12 @@ class PosterTableViewCell: UITableViewCell {
         posterImgView.kf.setImage(with: imageResource)
         let height = fixedWidth / CGFloat(ratio)
         heightConstraint?.update(offset: height)
+    }
+}
+
+
+extension PosterTableViewCell:ThemeChangeDelegate {
+    func setupTheme() {
+        self.theme.backgroundColor = themeService.attribute {$0.backgroundColor}
     }
 }

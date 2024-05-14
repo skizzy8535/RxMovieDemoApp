@@ -2,7 +2,7 @@
 //  LoginViewController.swift
 //  RxMovieDemoApp
 //
-//  Created by NeferUser on 2024/4/19.
+//  Created by YuChen Lin on 2024/4/19.
 //
 
 import UIKit
@@ -10,20 +10,31 @@ import SnapKit
 import RxSwift
 import RxCocoa
 import RxRelay
+import JGProgressHUD
+
 
 class LoginViewController: UIViewController {
 
     private var passwordShowStatus:Bool = false
     private var initSaveStatus:Bool = false
     private let disposeBag = DisposeBag()
-    private var userModel :User?
+    private var loginViewModel = LoginViewModel()
+
+
+    private let hud : JGProgressHUD = {
+        let hud = JGProgressHUD()
+        return hud
+    }()
+
 
     private let logoImageView:UIImageView = {
         let imageView = UIImageView()
         imageView.image = UIImage(named: "AppIcon")
-        imageView.contentMode = .scaleAspectFill
+        imageView.contentMode = .scaleToFill
+        imageView.clipsToBounds = true
         return imageView
     }()
+
 
     private let loginTitle :UILabel = {
         let label = UILabel()
@@ -42,7 +53,7 @@ class LoginViewController: UIViewController {
 
     private lazy var remeberBtn: UIButton = {
         let button = UIButton()
-        button.tintColor = AppConstant.COMMON_SUB_COLOR
+        button.tintColor = AppConstant.DARK_SUB_COLOR
         button.setImage(UIImage(systemName: "square")?.withRenderingMode(.alwaysTemplate), for: .normal)
         return button
     }()
@@ -56,8 +67,8 @@ class LoginViewController: UIViewController {
         return label
     }()
 
-    private lazy var emailBgView = makeTextFieldBg(name:"Email")
-    private var emailTextField:UITextField!
+    private lazy var userNameBgView = makeTextFieldBg(name:"Person")
+    private var userNameTextField:UITextField!
     private lazy var passwordBgView = makeTextFieldBg(name:"Password")
     private var passwordTextField:UITextField!
     private lazy var loginButton = makeButton(withText:"Login")
@@ -65,41 +76,27 @@ class LoginViewController: UIViewController {
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        self.view.backgroundColor = AppConstant.COMMON_MAIN_COLOR
-        setBinding()
+        self.view.backgroundColor = AppConstant.DARK_MAIN_COLOR
+        loginViewModel.delegate = self
         setLayout()
-        doIfSaveAccount()
+        setBinding()
     }
 
 
     private func setBinding() {
-
-
         loginButton.rx.tap
             .subscribe(onNext: { [weak self] in
                 guard let self = self else { return }
 
-                guard let email = self.emailTextField.text else {
-                    return print("email is invalid")
+                guard let userName = self.userNameTextField.text else {
+                    return print("userName is invalid")
                 }
 
                 guard let password = self.passwordTextField.text else {
                     return print("password is invalid")
                 }
 
-
-                let info  = UserDetail(login: email, password: password)
-                self.userModel = User(user: info)
-
-                 UserRepository().sendRequest(user: self.userModel!, status:.login ) { result in
-                    switch result {
-                    case .success(let item):
-                        FetchUserUseCase.saveNewUserStatus(userResponse: item)
-                        self.doHaveAccountAction()
-                    case .failure(let error):
-                        self.showAlert(message: error.localizedDescription)
-                    }
-                }
+                loginViewModel.doUserLogin(userName: userName, password: password, status: .login)
 
             })
             .disposed(by: disposeBag)
@@ -117,22 +114,27 @@ class LoginViewController: UIViewController {
             .subscribe(onNext: { [weak self] in
                 guard let self = self else { return }
                 self.initSaveStatus = !self.initSaveStatus
-                UserDefaults.standard.setValue(self.initSaveStatus, forKey: "IfSaveInfo")
 
-                let status =  UserDefaults.standard.bool(forKey: "IfSaveInfo")
-                self.remeberBtn.setImage(
-                    status ? UIImage(systemName: "checkmark.square.fill") :UIImage(systemName: "square") , for: .normal)
-                if (status) {
-                    if let emailTxt = self.emailTextField.text ,
-                       let passwordTxt = self.passwordTextField.text,
-                       emailTxt.count > 0,
-                       passwordTxt.count > 0 {
-                        UserDefaults.standard.setValue(emailTxt, forKey: "LoginAccount")
-                        UserDefaults.standard.setValue(passwordTxt, forKey: "LoginPassword")
-                    }
+                
+                guard let userName = self.userNameTextField.text else {
+                    return print("userName is invalid")
+                }
+
+                guard let password = self.passwordTextField.text else {
+                    return print("password is invalid")
+                }
+                
+                if (self.initSaveStatus) {
+                    UserResponseUseCase.startSaveInfo()
+                    UserResponseUseCase.saveUserAccount(account: userName)
+                    UserResponseUseCase.saveUserPassword(password: password)
+                    self.remeberBtn.setImage(UIImage(systemName: "checkmark.square.fill") , for: .normal)
+                    
                 } else {
-                    UserDefaults.standard.removeObject(forKey: "LoginAccount")
-                    UserDefaults.standard.removeObject(forKey: "LoginPassword")
+                    UserResponseUseCase.cancelSaveInfo()
+                    UserResponseUseCase.removeUserAccount()
+                    UserResponseUseCase.deleteUserPassword()
+                    self.remeberBtn.setImage(UIImage(systemName: "square") , for: .normal)
                 }
             })
             .disposed(by: disposeBag)
@@ -144,16 +146,18 @@ class LoginViewController: UIViewController {
             self?.present(vc, animated: true)
 
         }).disposed(by: self.disposeBag)
+
+        loginViewModel.doRetrieveInfo()
     }
 
 
     private func setLayout() {
-        emailTextField = makeTextField(withText: "Email")
+        userNameTextField = makeTextField(withText: "User Name")
         passwordTextField = makeTextField(withText: "Password")
 
         view.addSubview(logoImageView)
         view.addSubview(loginTitle)
-        view.addSubview(emailBgView)
+        view.addSubview(userNameBgView)
         view.addSubview(passwordBgView)
         view.addSubview(remeberLabel)
         view.addSubview(remeberBtn)
@@ -173,22 +177,22 @@ class LoginViewController: UIViewController {
             make.height.equalTo(60)
         }
 
-        emailBgView.snp.makeConstraints { make in
+        userNameBgView.snp.makeConstraints { make in
             make.top.equalTo(loginTitle.snp.bottom).offset(20)
             make.left.right.equalToSuperview().inset(30)
             make.height.equalTo(44)
         }
 
-        emailBgView.addSubview(emailTextField)
+        userNameBgView.addSubview(userNameTextField)
 
-        emailTextField.snp.makeConstraints { make in
+        userNameTextField.snp.makeConstraints { make in
             make.left.equalToSuperview().offset(33)
             make.top.bottom.equalToSuperview().inset(1)
             make.right.equalToSuperview().inset(10)
         }
 
         passwordBgView.snp.makeConstraints { make in
-            make.top.equalTo(emailBgView.snp.bottom).offset(10)
+            make.top.equalTo(userNameBgView.snp.bottom).offset(10)
             make.left.right.equalToSuperview().inset(30)
             make.height.equalTo(44)
         }
@@ -274,22 +278,56 @@ class LoginViewController: UIViewController {
         let button = UIButton()
         button.setTitle(withText, for: .normal)
         button.titleLabel?.adjustsFontSizeToFitWidth = true
-        button.backgroundColor = AppConstant.COMMON_SUB_COLOR
+        button.backgroundColor = AppConstant.DARK_SUB_COLOR
         button.layer.cornerRadius = 8
         return button
     }
 
+}
 
-    private func showAlert(message: String) {
-        let alertController = UIAlertController(title: "Error", message: message, preferredStyle: .alert)
-        let okAction = UIAlertAction(title: "OK", style: .default, handler: nil)
-        alertController.addAction(okAction)
-        DispatchQueue.main.async {
-            self.present(alertController, animated: true, completion: nil)
+
+extension LoginViewController:LoginLoadDelegate{
+
+    func doRetrieveSaveAccountInfo() {
+        
+        if UserResponseUseCase.retrieveSaveInfo() {
+            userNameTextField.text = UserResponseUseCase.readUserAccount()            
+            passwordTextField.text = UserResponseUseCase.getUserPassword()
+            self.remeberBtn.setImage(UIImage(systemName: "checkmark.square.fill"), for: .normal)
         }
     }
 
-    func doHaveAccountAction() {
+    func didChange(isLoading: Bool) {
+        if isLoading {
+            showSuccessMessage()
+        } else {
+            showErrorMessage()
+        }
+    }
+
+
+    func showSuccessMessage() {
+        DispatchQueue.main.async {
+            let hud = JGProgressHUD()
+            hud.indicatorView = JGProgressHUDIndicatorView()
+            hud.show(in: self.view)
+            hud.dismiss(afterDelay: 2.0, animated: true)
+        }
+    }
+
+    func showErrorMessage(){
+        DispatchQueue.main.async {
+            let hud = JGProgressHUD()
+            hud.textLabel.text = "Login Error"
+            hud.detailTextLabel.text = "Either Username or password are incorrect"
+            hud.indicatorView = JGProgressHUDErrorIndicatorView()
+            hud.show(in: self.view)
+            hud.dismiss(afterDelay: 2.0, animated: true)
+        }
+    }
+
+
+    func doVerifyAccountAction() {
         DispatchQueue.main.async {
             let mainVC = MainTabBarController()
             mainVC.modalPresentationStyle = .fullScreen
@@ -298,13 +336,5 @@ class LoginViewController: UIViewController {
         }
     }
 
-    func doIfSaveAccount(){
-        if UserDefaults.standard.bool(forKey: "IfSaveInfo"),
-           let savedEmail = UserDefaults.standard.string(forKey: "LoginAccount"),
-           let savedPassword = UserDefaults.standard.string(forKey: "LoginPassword") {
-            emailTextField.text = savedEmail
-            passwordTextField.text = savedPassword
-            self.remeberBtn.setImage(UIImage(systemName: "checkmark.square.fill"), for: .normal)
-        }
-    }
+
 }

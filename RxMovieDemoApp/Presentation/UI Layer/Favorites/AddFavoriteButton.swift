@@ -28,6 +28,7 @@ class AddFavoriteButton: UIButton {
 
 
     func setStatus(status:Bool) {
+        
         if (status) {
             self.setBackgroundImage(UIImage(systemName: "heart.fill"), for: .normal)
         } else {
@@ -37,16 +38,10 @@ class AddFavoriteButton: UIButton {
 
     func setAddFavorite (favorites:PostFavoriteRecordModel) {
         viewModel.addToFavorites(movie: favorites)
-        self.setStatus(status: true)
-        self.layoutIfNeeded()
     }
 
     func deleteAddFavorite (item:FavoriteDeleted) {
-        viewModel.deleteFromFavorites(item: item) {
-            DispatchQueue.main.async {
-                self.setStatus(status: false)
-            }
-        }
+        viewModel.deleteFromFavorites(item: item) 
     }
 
 }

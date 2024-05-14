@@ -23,22 +23,20 @@ class LoginViewModel {
     }
 
     func doUserLogin(userName:String,password:String ,status:UserInfoStatus) {
-
-//        self.delegate?.didChange(isLoading: true)
-
-        var userData :User = User(user: UserDetail(login: userName, password: password))
+        let userData :User = User(user: UserDetail(login: userName, password: password))
 
         userLoginService?.sendRequest(user: userData, status: status, completion: { result in
 
             switch result {
               case .success(let item):
                 self.delegate?.showSuccessMessage()
-                UserReponseUseCase.saveNewUserStatus(userResponse: item)
+                UserResponseUseCase.saveUserAccount(account: userName)
+                UserDefaults.standard.set(true, forKey: "hasAlreadyLaunched")
                 self.delegate?.doVerifyAccountAction()
                 self.delegate?.didChange(isLoading: true)
 
               case .failure(let error):
-             //   self.delegate?.showErrorMessage()
+                UserDefaults.standard.set(false, forKey: "hasAlreadyLaunched")
                 self.delegate?.didChange(isLoading: false)
 
             }
